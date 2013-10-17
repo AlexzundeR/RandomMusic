@@ -10,6 +10,7 @@ namespace RandomMusic
     {
         static void Main(string[] args)
         {
+             
             var musicDirectory = @"F:\Музыка";
             var musicCopyDirectory = @"E:\Music";
 
