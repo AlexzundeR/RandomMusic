@@ -10,7 +10,7 @@ namespace RandomMusic
     {
         static void Main(string[] args)
         {
-             
+            //I want to refactor that 
             var musicDirectory = @"F:\Музыка";
             var musicCopyDirectory = @"E:\Music";
 
