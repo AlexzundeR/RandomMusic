@@ -32,7 +32,13 @@ namespace RandomMusic
             }
             else
             {
-                settings.SetSetting("MusicFromDirectory", currentInput);
+                settings.SetSetting("MusicFromDirectory", musicDirectory);
+
+                if (!Directory.Exists(musicDirectory))
+                {
+                    Console.WriteLine("Папка отсутствовала. Создаем.");
+                    Directory.CreateDirectory(musicDirectory);
+                }
 
                 Console.WriteLine("Путь до папки с музыкой на мобиле:({0})", musicCopyDirectory);
                 currentInput = Console.ReadLine();
@@ -48,7 +54,7 @@ namespace RandomMusic
                 }
                 else
                 {
-                    settings.SetSetting("MusicToDirectory", currentInput);
+                    settings.SetSetting("MusicToDirectory", musicCopyDirectory);
 
                     if (!Directory.Exists(musicCopyDirectory))
                     {
@@ -101,7 +107,7 @@ namespace RandomMusic
 
                     size = GetDirectorySize(musicCopyDirectory);
                     Int32 counter = 1;
-                    while (size < maxSize)
+                    while (size < maxSize&&files.Count>0)
                     {
                         var index = rnd.Next(1, files.Count()) - 1;
                         var file = files[index];
@@ -131,17 +137,13 @@ namespace RandomMusic
                                 }
                             }
                             size += fileSize;
-                            Console.WriteLine("Прогресс:{0:P0}.", (1 - (maxSize - size) / wantToHold));
+                            Console.WriteLine("Прогресс:{0:P1}.", (1 - (maxSize - size) / wantToHold));
                             counter++;
                             files.Remove(file);
                         }
                         catch (Exception)
                         {
                             Console.WriteLine("{0} не скопирован", file);
-                        }
-                        finally
-                        {
-                            files.RemoveAt(index);
                         }
                     }
                     Console.WriteLine("Закончено");
