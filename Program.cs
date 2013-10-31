@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.IO;
+using SettingsModule;
 
 namespace RandomMusic
 {
@@ -11,8 +13,10 @@ namespace RandomMusic
         static void Main(string[] args)
         {
             //I want to refactor that 
-            var musicDirectory = @"F:\Музыка";
-            var musicCopyDirectory = @"E:\Music";
+            SettingsStorage settings = new SettingsStorage(new XmlSettingsProvider(true));
+
+            var musicDirectory = (settings.GetSetting("MusicFromDirectory").GetValue() ?? @"F:\Музыка").ToString();
+            var musicCopyDirectory = (settings.GetSetting("MusicToDirectory").GetValue() ?? @"E:\Music").ToString();
 
             Console.WriteLine("Путь до папки с музыкой на компьютере:({0})", musicDirectory);
             var currentInput = Console.ReadLine();
@@ -28,6 +32,7 @@ namespace RandomMusic
             }
             else
             {
+                settings.SetSetting("MusicFromDirectory", currentInput);
 
                 Console.WriteLine("Путь до папки с музыкой на мобиле:({0})", musicCopyDirectory);
                 currentInput = Console.ReadLine();
@@ -43,6 +48,7 @@ namespace RandomMusic
                 }
                 else
                 {
+                    settings.SetSetting("MusicToDirectory", currentInput);
 
                     if (!Directory.Exists(musicCopyDirectory))
                     {
@@ -73,7 +79,7 @@ namespace RandomMusic
 
                     var files = Directory.GetFiles(musicDirectory, "*.*", SearchOption.AllDirectories).Where(e =>
                                                                                                                  {
-                                                                                                                     var ext = Path.GetExtension(e)??"".ToLower();
+                                                                                                                     var ext = Path.GetExtension(e) ?? "".ToLower();
                                                                                                                      var fileName = Path.GetFileName(e);
                                                                                                                      return !currentFiles.Contains(fileName) &&
                                                                                                                      (ext == ".mp3" || ext == ".flac" || ext == ".ogg" || ext == ".wav");
@@ -121,7 +127,7 @@ namespace RandomMusic
                                 }
                                 else
                                 {
-                                    break;                                    
+                                    break;
                                 }
                             }
                             size += fileSize;
