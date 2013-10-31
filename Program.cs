@@ -125,7 +125,7 @@ namespace RandomMusic
                                 }
                             }
                             size += fileSize;
-                            Console.WriteLine("Прогресс:{0:P0}.", (1 - (maxSize - size) / wantToHold - 0.01));
+                            Console.WriteLine("Прогресс:{0:P0}.", (1 - (maxSize - size) / wantToHold));
                             counter++;
                             files.Remove(file);
                         }
