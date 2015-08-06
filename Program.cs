@@ -123,9 +123,9 @@ namespace RandomMusic
                             if (size + fileSize > maxSize)
                             {
                                 file = filesList.FirstOrDefault(e => size + GetFileSize(e) < maxSize);
+                                if (file == null) break;
                                 fileSize = GetFileSize(file);
                             }
-                            if (file == null) break;
                             size += fileSize;
                             File.Copy(file, musicCopyDirectory + @"\" + fileName, true);
                             Console.WriteLine("{1}. {0} скопирован.", fileName, counter);
