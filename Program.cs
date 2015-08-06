@@ -63,8 +63,8 @@ namespace RandomMusic
                     }
                     Console.WriteLine("Считываем файлы из папки на мобиле...");
                     var currentFiles =
-                        Directory.GetFiles(musicCopyDirectory, "*.*", SearchOption.AllDirectories).Select(
-                            Path.GetFileName).ToList();
+                        Directory.EnumerateFiles(musicCopyDirectory, "*.*", SearchOption.AllDirectories)
+                        .Where(e => !e.Contains("System Volume Information")).Select(Path.GetFileName).ToList();
 
                     if (currentFiles.Count > 0)
                     {
@@ -107,39 +107,33 @@ namespace RandomMusic
 
                     size = GetDirectorySize(musicCopyDirectory);
                     Int32 counter = 1;
-                    while (size < maxSize&&files.Count>0)
+                    var filesList = files.ToList();
+                    Int32 totalCount = filesList.Count;
+
+                    while (size < maxSize && totalCount > 0)
                     {
-                        var index = rnd.Next(1, files.Count()) - 1;
-                        var file = files[index];
+                        var index = rnd.Next(0, totalCount-1);
+                        var file = filesList.ElementAt(index);
                         try
                         {
                             var fileName = Path.GetFileName(file);
                             if (rename)
                                 fileName = counter + "-" + fileName;
                             var fileSize = GetFileSize(file);
-                            if (size + fileSize < maxSize)
+                            if (size + fileSize > maxSize)
                             {
-                                File.Copy(file, musicCopyDirectory + @"\" + fileName, true);
-                                Console.WriteLine("{1}. {0} скопирован.", fileName, counter);
+                                file = filesList.FirstOrDefault(e => size + GetFileSize(e) < maxSize);
+                                fileSize = GetFileSize(file);
                             }
-                            else
-                            {
-                                var lastFile = files.FirstOrDefault(e => size + GetFileSize(e) < maxSize);
-                                if (lastFile != null)
-                                {
-                                    var lastFileName = Path.GetFileName(lastFile);
-                                    File.Copy(file, musicCopyDirectory + @"\" + lastFileName, true);
-                                    Console.WriteLine("{1}. {0} скопирован.", lastFileName, counter);
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
+                            if (file == null) break;
                             size += fileSize;
+                            File.Copy(file, musicCopyDirectory + @"\" + fileName, true);
+                            Console.WriteLine("{1}. {0} скопирован.", fileName, counter);
+
                             Console.WriteLine("Прогресс:{0:P1}.", (1 - (maxSize - size) / wantToHold));
                             counter++;
-                            files.Remove(file);
+                            filesList.Remove(file);
+                            totalCount--;
                         }
                         catch (Exception)
                         {
