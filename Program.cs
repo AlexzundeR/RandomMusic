@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using SettingsModule;
+using System.Threading.Tasks;
 
 namespace RandomMusic
 {
@@ -101,49 +102,92 @@ namespace RandomMusic
                     Console.WriteLine("Максимальный размер папки:{0:F2} Мб", freeSpace + size);
 
                     Console.WriteLine("Введите желаемый размер папки (Мб)");
-                    var maxSize = Convert.ToDouble(Console.ReadLine()) * (1024 * 1024);
+                    Int64 maxSize = Convert.ToInt64(Console.ReadLine()) * (1024 * 1024);
 
                     var wantToHold = maxSize - size * (1024 * 1024);
 
                     size = GetDirectorySize(musicCopyDirectory);
-                    Int32 counter = 1;
                     var filesList = files.ToList();
-                    Int32 totalCount = filesList.Count;
 
-                    while (size < maxSize && totalCount > 0)
+                    FileCopyState state = new FileCopyState()
                     {
-                        var index = rnd.Next(0, totalCount-1);
-                        var file = filesList.ElementAt(index);
+                        Count = 1,
+                        CurrentSize = size,
+                        Random = rnd,
+                        Files = filesList,
+                        MaxLength = maxSize,
+                        Rename = rename,
+                        CopyDirectory = musicCopyDirectory
+                    };
+
+                    var selectedFile = SelectFile(state);
+
+                    while (state.CurrentSize < state.MaxLength && state.Files.Count > 0)
+                    {
                         try
                         {
-                            var fileName = Path.GetFileName(file);
-                            if (rename)
-                                fileName = counter + "-" + fileName;
-                            var fileSize = GetFileSize(file);
-                            if (size + fileSize > maxSize)
+                            var selectTask = Task.Run(() =>
                             {
-                                file = filesList.FirstOrDefault(e => size + GetFileSize(e) < maxSize);
-                                if (file == null) break;
-                                fileSize = GetFileSize(file);
-                            }
-                            size += fileSize;
-                            File.Copy(file, musicCopyDirectory + @"\" + fileName, true);
-                            Console.WriteLine("{1}. {0} скопирован.", fileName, counter);
+                                return SelectFile(state);
+                            });
 
-                            Console.WriteLine("Прогресс:{0:P1}.", (1 - (maxSize - size) / wantToHold));
-                            counter++;
-                            filesList.Remove(file);
-                            totalCount--;
+                            File.Copy(selectedFile.Item1, selectedFile.Item2, true);
+
+                            Console.WriteLine("{1}. {0} скопирован.", Path.GetFileName(selectedFile.Item2), state.Count++);
+
+                            Console.WriteLine("Прогресс:{0:P1}.", (1 - (state.MaxLength - state.CurrentSize) / (Double)wantToHold));
+                            state.Count++;
+                            state.Files.Remove(selectedFile.Item1);
+                            selectedFile = selectTask.Result;
+                            if (selectedFile==null) break;
                         }
                         catch (Exception)
                         {
-                            Console.WriteLine("{0} не скопирован", file);
+                            Console.WriteLine("{0} не скопирован", Path.GetFileName(selectedFile.Item2));
+                            state.Files.Remove(selectedFile.Item1);
                         }
                     }
                     Console.WriteLine("Закончено");
                 }
             }
             Console.ReadLine();
+        }
+
+        public class FileCopyState
+        {
+            public Random Random;
+            public List<String> Files;
+            public Boolean Rename;
+            public Int64 CurrentSize;
+            public Int64 MaxLength;
+            public Int32 Count;
+            public string CopyDirectory;
+        }
+
+        private static Tuple<String, String> SelectFile(FileCopyState state)
+        {
+            if (state.Files.Count == 0) return null;
+            var index = state.Random.Next(0, state.Files.Count-1);
+            var file = state.Files.ElementAt(index);
+
+            var fileName = Path.GetFileName(file);
+            if (fileName.Length >= 250)
+            {
+                state.Files.Remove(file);
+                return SelectFile(state);
+            }
+
+            var fileSize = GetFileSize(file);
+            if (state.Rename)
+                fileName = state.Count + "-" + fileName;
+            if (state.CurrentSize + fileSize > state.MaxLength)
+            {
+                state.Files.Remove(file);
+                return SelectFile(state);
+            }
+
+            state.CurrentSize += fileSize;
+            return new Tuple<string, string>(file, state.CopyDirectory + @"\" + fileName);
         }
 
         private static long GetDirectorySize(string folderPath)
